@@ -12,16 +12,8 @@ python3 p3_translated.py --split validation --size 100
 
 translator = Translator(proxies={'http': 'http://localhost:8118'})
 
-TZERO_TASK_LIST = [
-    # 'adversarial_qa_dbert_answer_the_following_q',
-    # 'adversarial_qa_dbert_based_on',
-    # 'adversarial_qa_dbert_generate_question'
-    # 'adversarial_qa_dbert_question_context_answer',
-    # 'adversarial_qa_dbert_tell_what_it_is',
-    'adversarial_qa_dbidaf_answer_the_following_q',
-    'adversarial_qa_dbidaf_based_on',
-    'adversarial_qa_dbidaf_generate_question'
-]
+with open('task_list.txt', 'r') as f:
+    TZERO_TASK_LIST = f.readlines()
 
 def read_json(task_name, split):
     with open(f'p3_{task_name}_{split}.jsonl', 'r') as json_file:
@@ -96,24 +88,35 @@ def parse_args():
 
 def main():
     args = parse_args()
-    for task_name in TZERO_TASK_LIST:
-        data = read_json(task_name, args.split)
-        data_chunks = list(divide_chunks(data, args.size))
-        print("Starting task...")
-        pool_chunks = (data_chunks[0:2], data_chunks[2:4],data_chunks[4:6], data_chunks[6:8], data_chunks[8:])
-        with Pool(8) as pool:
-            # translated length: len = 5 corresponds to 5 chunks
-            # translated_list_1: chunk 0, 2, 4, 6, 8
-            # translated_list_2: chunk 1, 3, 5, 7, 9
-            translated_list_1, translated_list_2 = zip(*pool.map(translate_chunks, pool_chunks))
-            # report a message
-            print('Done.')
+    try:
+        for task_name in TZERO_TASK_LIST:
+            data = read_json(task_name, args.split)
+            data_chunks = list(divide_chunks(data, args.size))
+            print("Starting task...")
+            pool_chunks = (data_chunks[0:2], data_chunks[2:4],data_chunks[4:6], data_chunks[6:8], data_chunks[8:])
+            with Pool(8) as pool:
+                # translated length: len = 5 corresponds to 5 chunks
+                # translated_list_1: chunk 0, 2, 4, 6, 8
+                # translated_list_2: chunk 1, 3, 5, 7, 9
+                translated_list_1, translated_list_2 = zip(*pool.map(translate_chunks, pool_chunks))
+                # report a message
+                print('Done.')
 
-        # train_translated_dict_1 = list_to_dict(train_translated_list_1)
-        # train_translated_dict_2 = list_to_dict(train_translated_list_2)
-        save_translated_json(translated_list_1, task_name, args.split)
-        save_translated_json(translated_list_2, task_name, args.split)
-
+            # train_translated_dict_1 = list_to_dict(train_translated_list_1)
+            # train_translated_dict_2 = list_to_dict(train_translated_list_2)
+            save_translated_json(translated_list_1, task_name, args.split)
+            save_translated_json(translated_list_2, task_name, args.split)
+            
+            # if translated successful, remove task_name from list
+            # write this task_name to the new translated file
+            with open('translated_list.txt', 'a+') as fp:
+                fp.write(task_name)
+            TZERO_TASK_LIST.remove(task_name)
+    except Exception:
+        # if Exception occurs, write the rest of the list to the task_list file
+        with open('task_list.txt', 'w') as ft:
+            for task_name in TZERO_TASK_LIST:
+                ft.write(task_name)
 
 if __name__ == '__main__':
     main()
