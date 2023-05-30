@@ -33,3 +33,9 @@ python3 prepare_p3.py
 python3 p3_translated.py --split train/validation --size 1000/100
 ```
 
+### If exceptions occurs 
+- Completed subsets are written in the new file 
+- Rewritten the original task list file
+- Run again with the above commands 
+- In this implementation, the train and the validation subsets are separately translated, not parallel yet 
+
