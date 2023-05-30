@@ -1,5 +1,7 @@
 import argparse
 import json
+import logging
+import time
 from googletrans import Translator
 from retrying import retry
 from multiprocessing import Pool
@@ -12,8 +14,17 @@ python3 p3_translated.py --split validation --size 100
 
 translator = Translator(proxies={'http': 'http://localhost:8118'})
 
-with open('task_list.txt', 'r') as f:
-    TZERO_TASK_LIST = f.readlines()
+logging.basicConfig(filename='/tmp/p3_translated.log', level=logging.DEBUG, 
+                    format='%(asctime)s %(levelname)s %(name)s %(message)s')
+logger=logging.getLogger(__name__)
+
+with open('task_list.txt', 'r+') as f:
+    files = f.readlines()
+
+TASK_LIST = []
+for i in range(len(files)):
+    files[i] = files[i].rstrip("\n")
+    TASK_LIST.append(files[i])
 
 def read_json(task_name, split):
     with open(f'p3_{task_name}_{split}.jsonl', 'r') as json_file:
@@ -88,8 +99,9 @@ def parse_args():
 
 def main():
     args = parse_args()
-    try:
-        for task_name in TZERO_TASK_LIST:
+    FINISHED_TASK_LIST = []
+    for task_name in TASK_LIST:
+        try:
             data = read_json(task_name, args.split)
             data_chunks = list(divide_chunks(data, args.size))
             print("Starting task...")
@@ -100,23 +112,31 @@ def main():
                 # translated_list_2: chunk 1, 3, 5, 7, 9
                 translated_list_1, translated_list_2 = zip(*pool.map(translate_chunks, pool_chunks))
                 # report a message
-                print('Done.')
+                print('Done translated.')
 
-            # train_translated_dict_1 = list_to_dict(train_translated_list_1)
-            # train_translated_dict_2 = list_to_dict(train_translated_list_2)
             save_translated_json(translated_list_1, task_name, args.split)
             save_translated_json(translated_list_2, task_name, args.split)
-            
-            # if translated successful, remove task_name from list
-            # write this task_name to the new translated file
-            with open('translated_list.txt', 'a+') as fp:
-                fp.write(task_name)
-            TZERO_TASK_LIST.remove(task_name)
-    except Exception:
-        # if Exception occurs, write the rest of the list to the task_list file
-        with open('task_list.txt', 'w') as ft:
-            for task_name in TZERO_TASK_LIST:
-                ft.write(task_name)
+        
+            # if translated successful add this task_name to the translated list
+            FINISHED_TASK_LIST.append(task_name)
+
+        except Exception as err:
+            # if Exception occurs, write the rest of the list to the task_list file
+            print('Exception occurs')
+            logger.error(err)
+            # remove finished tasks in the original task lis
+            for task_name in FINISHED_TASK_LIST:
+                TASK_LIST.remove(task_name)
+            with open('task_list.txt', 'w') as ft:
+                for task_name in TASK_LIST:
+                    ft.write("%s\n" %task_name)
+                print("Write again task list when exception occurs")
+
+    # write translated list to file
+    with open('translated_list.txt', 'a+') as fp:
+        for task_name in FINISHED_TASK_LIST:
+            fp.write("%s\n" %task_name)
+        print("Write translated_list successuflly!")
 
 if __name__ == '__main__':
     main()
