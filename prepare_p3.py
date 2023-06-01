@@ -336,8 +336,11 @@ TZERO_TASK_LIST = [
     'yelp_review_full_this_place'
 ]
 
-# with open('task_list.txt', 'r+') as f:
-#     TASK_LIST = f.readlines()
+with open('task_list.txt', 'w') as fp:
+    for task_name in TZERO_TASK_LIST:
+        task_name = task_name.replace("'", "")
+        fp.write("%s\n" %task_name)
+
 
 # Optonally download all first
 # for task_name in TZERO_TASK_LIST:
