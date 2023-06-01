@@ -22,15 +22,9 @@ python3 prepare_p3.py
 ```
 
 ### Translate data
-
-- Arguments:
-
-  --split: default = train => define split 
-  
-  --size: default = 1000 => define chunk size to divide
   
 ```
-python3 p3_translated.py --split train/validation --size 1000/100
+python3 p3_translated.py 
 ```
 
 ### If exceptions occurs 
