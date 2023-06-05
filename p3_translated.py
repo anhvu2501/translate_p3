@@ -65,20 +65,16 @@ def save_translated_json(mydict, task_name, split):
 @retry(wait_fixed=7000)
 def translate_list_str(task_name, translator, list_str):
     translated = []
-    for sentence in list_str:
-        try:
-            translated_sentence = translator.translate(sentence, src='en', dest='vi')
-            translated.append(translated_sentence)
-        except Exception as err:
-            logger.error(err)
-            print(f'Exception occured when translating: {task_name}')
-            print(f"Exception occurred for sentence: {sentence}")
-            # Write error list that stores sentences that exception occurred
-            json_object = json.dumps(list_to_dict(sentence), indent=2, ensure_ascii=False)
-            # Writing to .jsonl
-            with open(f'{task_name}_error_sentences.txt', 'a+') as fp:
-                fp.write("%s\n" %sentence)
-                print(f'Write {task_name} error sentences successuflly!')
+    try:
+        translated = translator.translate(list_str, src='en', dest='vi')
+    except Exception as err:
+        logger.error(err)
+        print(f'Exception occured when translating: {task_name}')
+        print(f"Exception occurred for sentence: {list_str}")
+        # Write error list that stores sentences that exception occurred
+        with open(f'{task_name}_error_sentences.txt', 'a+') as fp:
+            fp.write("%s\n" %list_str)
+            print(f'Write {task_name} error sentences successuflly!')
     return translated
 
 def translate_chunks(task_name, list_chunks):
