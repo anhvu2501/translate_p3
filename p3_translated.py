@@ -2,7 +2,6 @@ import os
 import argparse
 import json
 import logging
-import time
 from googletrans import Translator
 from retrying import retry
 from multiprocessing import Pool
@@ -20,8 +19,6 @@ logging.basicConfig(filename='/tmp/p3_translated.log', level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
 logger=logging.getLogger(__name__)
 
-# Need to automatic check if incompleted task list exists or not 
-# Or to run the whole original task list
 
 def read_json(task_name, split):
     with open(f'p3_{task_name}_{split}.jsonl', 'r') as json_file:
@@ -105,8 +102,6 @@ def parse_args():
         '--split',
         default='train',
         help='define split')
-    # chunk size = 1000 when split train
-    # chunk size = 100 when split validation
     args = parser.parse_args()
     return args
 
@@ -135,8 +130,8 @@ def main():
                 # report a message
                 print('Done translation translated.')
 
-            save_translated_json(translated_list_1, task_name, args.split)
-            save_translated_json(translated_list_2, task_name, args.split)
+            translated_list = translated_list_1 + translated_list_2
+            save_translated_json(translated_list, task_name, args.split)
         
             # if translated successful add this task_name to the translated list
             FINISHED_TASK_LIST.append(task_name)
