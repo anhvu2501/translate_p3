@@ -10,8 +10,8 @@ from functools import partial
 
 """
 Commands:
-python3 p3_translated.py --split train --size 1000
-python3 p3_translated.py --split validation --size 100
+python3 p3_translated.py --path file_path --split train --size 1000
+python3 p3_translated.py --path file_path --split validation --size 100
 """
 
 translator = Translator(proxies={'http': 'http://localhost:8118'})
@@ -89,7 +89,7 @@ def translate_chunks(task_name, list_chunks):
     return translated_chunks
 
 def dir_path(string):
-    if os.path.isdir(string):
+    if os.path.exists(string):
         return string
     else:
         raise NotADirectoryError(string)
@@ -98,6 +98,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Translate dataset')
     parser.add_argument(
         '--path',
+        default='task_list.txt',
         type=dir_path
     )
     parser.add_argument(
