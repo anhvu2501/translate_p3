@@ -1,3 +1,4 @@
+import os
 import argparse
 import json
 import logging
@@ -19,13 +20,8 @@ logging.basicConfig(filename='/tmp/p3_translated.log', level=logging.DEBUG,
                     format='%(asctime)s %(levelname)s %(name)s %(message)s')
 logger=logging.getLogger(__name__)
 
-with open('task_list.txt', 'r+') as f:
-    files = f.readlines()
-
-TASK_LIST = []
-for i in range(len(files)):
-    files[i] = files[i].rstrip("\n")
-    TASK_LIST.append(files[i])
+# Need to automatic check if incompleted task list exists or not 
+# Or to run the whole original task list
 
 def read_json(task_name, split):
     with open(f'p3_{task_name}_{split}.jsonl', 'r') as json_file:
@@ -92,36 +88,48 @@ def translate_chunks(task_name, list_chunks):
         translated_chunks.append(translated_list_dict_chunk)
     return translated_chunks
 
+def dir_path(string):
+    if os.path.isdir(string):
+        return string
+    else:
+        raise NotADirectoryError(string)
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Translate dataset')
+    parser.add_argument(
+        '--path',
+        type=dir_path
+    )
     parser.add_argument(
         '--split',
         default='train',
         help='define split')
     # chunk size = 1000 when split train
     # chunk size = 100 when split validation
-    parser.add_argument(
-        '--size',
-        type=int,
-        default=1000,
-        help='define size of chunk to divide'
-    )
     args = parser.parse_args()
     return args
 
 def main():
     args = parse_args()
+    with open(args.path, 'r+') as f:
+        files = f.readlines()
+    TASK_LIST = []
+    for i in range(len(files)):
+        files[i] = files[i].rstrip("\n")
+        TASK_LIST.append(files[i])
     FINISHED_TASK_LIST = []
+
     for task_name in TASK_LIST:
         try:
             data = read_json(task_name, args.split)
-            data_chunks = list(divide_chunks(data, args.size))
-            print("Starting translation task...")
-            pool_chunks = (data_chunks[0:2], data_chunks[2:4],data_chunks[4:6], data_chunks[6:8], data_chunks[8:])
+            data_size = len(data)
+            data_chunks = list(divide_chunks(data, int(data_size / 16)))
+            print(f'Starting translation task: {task_name}...')
+            pool_chunks = (data_chunks[0:2], data_chunks[2:4],data_chunks[4:6], data_chunks[6:8], data_chunks[8:10], data_chunks[10:12], data_chunks[12:14], data_chunks[14:])
             with Pool(8) as pool:
-                # translated length: len = 5 corresponds to 5 chunks
-                # translated_list_1: chunk 0, 2, 4, 6, 8
-                # translated_list_2: chunk 1, 3, 5, 7, 9
+                # translated length: len = 5 corresponds to 8 chunks (corresponds to 8 cores)
+                # translated_list_1: chunk 0, 2, 4, 6, 8, 10, 12, 14, (16)
+                # translated_list_2: chunk 1, 3, 5, 7, 9, 11, 13, 15
                 translated_list_1, translated_list_2 = zip(*pool.map(partial(translate_chunks, task_name), pool_chunks))
                 # report a message
                 print('Done translation translated.')
@@ -136,15 +144,16 @@ def main():
             # if Exception occurs, write the rest of the list to the task_list file
             print(f'Exception when translating task name: {task_name}')
             logger.error(err)
+            print("Writing log. Continue to translate... ")
 
     # remove finished tasks in the original task list
     for task_name in FINISHED_TASK_LIST:
         TASK_LIST.remove(task_name)
     # Write again incompleted task list        
-    with open(f'incompleted_{args.split}_task_list.txt', 'a+') as ft:
+    with open(f'incompleted_{args.split}_task_list.txt', 'w') as ft:
         for task_name in TASK_LIST:
             ft.write("%s\n" %task_name)
-        print(f'Write again {args.split} task list whether exception occurs')
+        print(f'Write incompleted {args.split} task list after translating')
     
     # write translated list to file
     with open(f'{args.split}_translated_list.txt', 'a+') as fp:
