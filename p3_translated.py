@@ -135,6 +135,10 @@ def main():
         
             # if translated successful add this task_name to the translated list
             FINISHED_TASK_LIST.append(task_name)
+            # write translated list to file
+            with open(f'{args.split}_translated_list.txt', 'a+') as fp:
+                fp.write("%s\n" %task_name)
+                print(f'Write {args.split} translated_list successuflly!')
 
         except Exception as err:
             # if Exception occurs, write the rest of the list to the task_list file
@@ -151,12 +155,6 @@ def main():
             ft.write("%s\n" %task_name)
         print(f'Write incompleted {args.split} task list after translating')
     
-    # write translated list to file
-    with open(f'{args.split}_translated_list.txt', 'a+') as fp:
-        for task_name in FINISHED_TASK_LIST:
-            fp.write("%s\n" %task_name)
-        print(f'Write {args.split} translated_list successuflly!')
-
 if __name__ == '__main__':
     main()
 
