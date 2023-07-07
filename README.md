@@ -24,7 +24,8 @@ python3 prepare_p3.py
 ### Translate data
   
 ```
-python3 p3_translated.py 
+python3 translated_p3.py --path file_path --split train 
+python3 translated_p3.py --path file_path --split validation 
 ```
 
 ### If exceptions occurs 
